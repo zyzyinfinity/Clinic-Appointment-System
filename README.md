@@ -42,9 +42,44 @@ A full-stack web application demonstrating complete CRUD operations, user authen
 > The EmailJS Service/Template/Public keys in `frontend/app.js` are client-side
 > public keys and are safe to commit.
 
-## Deploy (Railway)
+## Deploy (Vercel + Aiven MySQL)
 
-Railway runs the Node app and MySQL in one project.
+Vercel doesn't host MySQL, so the database lives on a free host (Aiven) and
+the Express API runs as a Vercel serverless function — see `api/[...all].js`
+and `vercel.json`. `backend/server.js` (the `app.listen()` version) is only
+used for local dev / a traditional host; Vercel calls `backend/app.js`
+directly instead.
+
+1. **Database** — create a free MySQL service at [aiven.io](https://aiven.io)
+   (no card required). From its console, copy the host, port, user, password,
+   default database name, and connect (Aiven gives you a ready `mysql`
+   command) to load the schema:
+   ```bash
+   mysql --host <host> --port <port> -u <user> -p<pass> <db> --ssl-mode=REQUIRED < database/schema.sql
+   ```
+2. **Import to Vercel** — vercel.com → **Add New → Project** → import this
+   repo. Framework preset **Other**; leave build/output blank.
+3. Project → **Settings → Environment Variables**, add:
+   ```
+   DB_HOST=<Aiven host>
+   DB_PORT=<Aiven port>
+   DB_USER=<Aiven user>
+   DB_PASSWORD=<Aiven password>
+   DB_NAME=<Aiven database name>
+   DB_SSL=true
+   JWT_SECRET=<a long random string>
+   ```
+4. Deploy, open the `*.vercel.app` URL Vercel gives you, and try
+   registering/logging in/booking.
+5. **Settings → Domains** → add `clinic.ishzati.com` → point a Cloudflare
+   `CNAME clinic → cname.vercel-dns.com` (DNS only) at it, same as any other
+   Vercel project on this domain.
+
+### Alternative: Railway (app + MySQL together)
+
+Railway runs the Node app and MySQL in one project instead — no external DB
+needed, but the app must run as a normal long-lived process there (it does,
+via `npm start` / `backend/server.js`).
 
 1. Push this repo to GitHub, then **New Project → Deploy from GitHub repo**.
 2. **+ New → Database → MySQL**.
