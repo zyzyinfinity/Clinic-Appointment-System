@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Appointment System - Welcome</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="brand"><i class="fas fa-heartbeat"></i> ClinicCare</a>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="active">Home</a>
+            <a href="doctors.html">Doctors</a>
+            <a href="location.html">Location</a>
+        </div>
+        <div id="auth-nav">
+            <!-- Will be populated by JS -->
+        </div>
+    </nav>
+
+    <div class="container" id="main-content">
+        <!-- Auth Forms -->
+        <div class="auth-container card" id="login-section">
+            <h2 style="margin-bottom: 1.5rem; text-align: center;">Welcome Back</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="login-email" required placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="login-password" required placeholder="Enter your password">
+                </div>
+                <button type="submit" class="btn" style="width: 100%;">Log In</button>
+            </form>
+            <div class="auth-toggle">
+                Don't have an account? <a id="show-register">Register here</a>
+            </div>
+        </div>
+
+        <div class="auth-container card hidden" id="register-section">
+            <h2 style="margin-bottom: 1.5rem; text-align: center;">Create an Account</h2>
+            <form id="register-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="register-name" required placeholder="John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="register-email" required placeholder="john@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" id="register-phone" required placeholder="+1 234 567 890">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="register-password" required placeholder="Create a strong password">
+                </div>
+                <button type="submit" class="btn" style="width: 100%;">Register</button>
+            </form>
+            <div class="auth-toggle">
+                Already have an account? <a id="show-login">Log in here</a>
+            </div>
+        </div>
+
+        <!-- Dashboard (Hidden initially) -->
+        <div id="dashboard-section" class="hidden">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h1 id="welcome-message">Welcome</h1>
+                <a href="book-appointment.html" class="btn"><i class="fas fa-plus"></i> Book Appointment</a>
+            </div>
+            
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                <div class="card" style="text-align: center;">
+                    <i class="fas fa-user-md" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                    <h3>Our Doctors</h3>
+                    <p style="margin-bottom: 1rem; color: var(--text-light);">Browse our list of specialists.</p>
+                    <a href="doctors.html" class="btn btn-secondary">View Doctors</a>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <i class="fas fa-calendar-check" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                    <h3>My Appointments</h3>
+                    <p style="margin-bottom: 1rem; color: var(--text-light);">Manage your bookings and payments.</p>
+                    <a href="appointments.html" class="btn btn-secondary">View History</a>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <i class="fas fa-map-marked-alt" style="font-size: 3rem; color: var(--primary-color); margin-bottom: 1rem;"></i>
+                    <h3>Locate Us</h3>
+                    <p style="margin-bottom: 1rem; color: var(--text-light);">Find our clinic on the map.</p>
+                    <a href="location.html" class="btn btn-secondary">View Map</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-info-circle icon"></i>
+        <span class="message">Notification message</span>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if(window.app.isAuthenticated()) {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                const user = JSON.parse(localStorage.getItem('user'));
+                document.getElementById('welcome-message').textContent = `Welcome, ${user.name}`;
+            }
+
+            document.getElementById('show-register').addEventListener('click', () => {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('register-section').classList.remove('hidden');
+            });
+
+            document.getElementById('show-login').addEventListener('click', () => {
+                document.getElementById('register-section').classList.add('hidden');
+                document.getElementById('login-section').classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

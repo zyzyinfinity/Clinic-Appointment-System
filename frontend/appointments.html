@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Appointment System - My Appointments</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="brand"><i class="fas fa-heartbeat"></i> ClinicCare</a>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html">Home</a>
+            <a href="doctors.html">Doctors</a>
+            <a href="location.html">Location</a>
+        </div>
+        <div id="auth-nav"></div>
+    </nav>
+
+    <div class="container">
+        <h1 style="color: var(--primary-color); margin-bottom: 2rem;"><i class="fas fa-book-medical"></i> My Dashboard</h1>
+        
+        <div class="card" style="margin-bottom: 2rem;">
+            <h2>Appointments</h2>
+            <div id="appointments-loading" class="loader"></div>
+            <div id="appointments-list" style="margin-top: 1.5rem;">
+                <!-- Table will be injected here -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Payment Records</h2>
+            <div id="payments-loading" class="loader"></div>
+            <div id="payments-list" style="margin-top: 1.5rem;">
+                <!-- Payments will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal (Hidden via CSS initially) -->
+    <div id="payment-modal" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index: 2000; align-items:center; justify-content:center;">
+        <div class="card" style="width: 400px; max-width: 90%; position:relative;">
+            <button onclick="closePaymentModal()" style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--text-light);">&times;</button>
+            <h2 style="margin-bottom:1.5rem; color:var(--primary-color);">Make Payment</h2>
+            
+            <form id="payment-form">
+                <input type="hidden" id="pay-appt-id">
+                <div class="form-group">
+                    <label>Amount (USD)</label>
+                    <input type="number" id="pay-amount" value="150.00" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Card Number (Mock)</label>
+                    <input type="text" placeholder="XXXX XXXX XXXX XXXX" required>
+                </div>
+                <button type="submit" class="btn" style="width:100%;">Pay Now</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle icon"></i>
+        <span class="message"></span>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!app.isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+            loadAppointments();
+            loadPayments();
+        });
+
+        async function loadAppointments() {
+            try {
+                const data = await app.request('/appointments', 'GET');
+                const list = document.getElementById('appointments-list');
+                document.getElementById('appointments-loading').classList.add('hidden');
+
+                if (data.appointments && data.appointments.length > 0) {
+                    let html = `
+                        <table style="width:100%; border-collapse: collapse; text-align:left;">
+                            <thead>
+                                <tr style="border-bottom:2px solid var(--border-color); color:var(--text-light);">
+                                    <th style="padding:10px;">ID</th>
+                                    <th style="padding:10px;">Doctor</th>
+                                    <th style="padding:10px;">Date & Time</th>
+                                    <th style="padding:10px;">Status</th>
+                                    <th style="padding:10px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    data.appointments.forEach(apt => {
+                        const rowClass = apt.status === 'pending' ? 'pending' : (apt.status === 'confirmed' ? 'confirmed' : 'cancelled');
+                        const dateFormatted = new Date(apt.appointment_date).toLocaleDateString();
+                        
+                        html += `
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:10px; font-weight:600;">#${apt.id}</td>
+                                <td style="padding:10px;">
+                                    <strong>${apt.doctor_name}</strong><br>
+                                    <small style="color:var(--text-light);">${apt.specialization}</small>
+                                </td>
+                                <td style="padding:10px;">
+                                    ${dateFormatted}<br>
+                                    <span style="font-weight:600;">${apt.appointment_time}</span>
+                                </td>
+                                <td style="padding:10px;">
+                                    <span class="badge ${rowClass}">${apt.status.toUpperCase()}</span>
+                                </td>
+                                <td style="padding:10px;">
+                                    ${apt.status === 'pending' ? `<button onclick="openPaymentModal(${apt.id})" class="btn" style="padding: 6px 12px; font-size: 0.85rem;"><i class="fas fa-credit-card"></i> Pay</button>` : ''}
+                                    <button onclick="cancelAppointment(${apt.id})" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem; color: #ff7675; border-color: #ff7675;" ${apt.status === 'cancelled' ? 'disabled' : ''}><i class="fas fa-times"></i> Cancel</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `</tbody></table>`;
+                    list.innerHTML = html;
+                } else {
+                    list.innerHTML = '<p>You have no appointments yet.</p><a href="book-appointment.html" class="btn" style="margin-top:1rem;">Book Now</a>';
+                }
+            } catch (error) {
+                console.error("Error loading appointments", error);
+                document.getElementById('appointments-loading').classList.add('hidden');
+            }
+        }
+
+        async function loadPayments() {
+            try {
+                const data = await app.request('/payments', 'GET');
+                const list = document.getElementById('payments-list');
+                document.getElementById('payments-loading').classList.add('hidden');
+
+                if (data.payments && data.payments.length > 0) {
+                    let html = `
+                        <table style="width:100%; border-collapse: collapse; text-align:left;">
+                            <thead>
+                                <tr style="border-bottom:2px solid var(--border-color); color:var(--text-light);">
+                                    <th style="padding:10px;">Rec. ID</th>
+                                    <th style="padding:10px;">Apt. ID</th>
+                                    <th style="padding:10px;">Amount</th>
+                                    <th style="padding:10px;">Status</th>
+                                    <th style="padding:10px;">Paid On</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+
+                    data.payments.forEach(pay => {
+                        const dateFormatted = new Date(pay.payment_date).toLocaleString();
+                        html += `
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:10px; font-weight:600;">#P-${pay.id}</td>
+                                <td style="padding:10px;">#${pay.appointment_id}</td>
+                                <td style="padding:10px; font-weight:600;">$${pay.amount}</td>
+                                <td style="padding:10px;">
+                                    <span class="badge ${pay.payment_status === 'completed' ? 'confirmed' : 'pending'}">${pay.payment_status.toUpperCase()}</span>
+                                </td>
+                                <td style="padding:10px; color:var(--text-light); font-size:0.9rem;">
+                                    ${dateFormatted}
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `</tbody></table>`;
+                    list.innerHTML = html;
+                } else {
+                    list.innerHTML = '<p>You have no payment records yet.</p>';
+                }
+            } catch (error) {
+                console.error("Error loading payments", error);
+                document.getElementById('payments-loading').classList.add('hidden');
+            }
+        }
+
+        async function cancelAppointment(id) {
+            if(!confirm('Are you sure you want to cancel this appointment?')) return;
+            try {
+                await app.request(`/appointments/${id}`, 'DELETE');
+                app.showToast('Appointment cancelled successfully');
+                loadAppointments();
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        function openPaymentModal(apptId) {
+            document.getElementById('pay-appt-id').value = apptId;
+            document.getElementById('payment-modal').style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        document.getElementById('payment-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const apptId = document.getElementById('pay-appt-id').value;
+            const amount = document.getElementById('pay-amount').value;
+
+            try {
+                await app.request('/payments', 'POST', {
+                    appointment_id: apptId,
+                    amount: amount
+                });
+                app.showToast('Payment successful', 'success');
+                closePaymentModal();
+                loadAppointments(); // Refresh statuses
+                loadPayments(); // Show new record
+            } catch (error) {
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>

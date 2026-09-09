@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Appointment System - Book Appointment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="brand"><i class="fas fa-heartbeat"></i> ClinicCare</a>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html">Home</a>
+            <a href="doctors.html" class="active">Doctors</a>
+            <a href="location.html">Location</a>
+        </div>
+        <div id="auth-nav"></div>
+    </nav>
+
+    <div class="container">
+        <h1 style="text-align: center; margin-bottom: 2rem; color: var(--primary-color);">Book an Appointment</h1>
+        
+        <div class="auth-container card" style="max-width: 600px;">
+            <form id="booking-form">
+                <div class="form-group">
+                    <label>Select Doctor</label>
+                    <select id="doctor-select" required>
+                        <option value="">-- Choose a Specialist --</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Appointment Date</label>
+                    <input type="date" id="appointment-date" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Preferred Time</label>
+                    <input type="time" id="appointment-time" required>
+                </div>
+
+                <button type="submit" class="btn" style="width: 100%;"><i class="fas fa-calendar-plus"></i> Confirm Booking</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle icon"></i>
+        <span class="message"></span>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!app.isAuthenticated()) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // Set min date to today
+            const dateInput = document.getElementById('appointment-date');
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.min = today;
+
+            // Load doctors
+            try {
+                const response = await fetch('http://localhost:3000/api/doctors');
+                const data = await response.json();
+                
+                const selectBox = document.getElementById('doctor-select');
+                
+                // Get pre-selected doctor ID
+                const urlParams = new URLSearchParams(window.location.search);
+                const preselectedDoctor = urlParams.get('doctorId');
+
+                if (data.doctors && data.doctors.length > 0) {
+                    data.doctors.forEach(doc => {
+                        const option = document.createElement('option');
+                        option.value = doc.id;
+                        option.textContent = `${doc.name} - ${doc.specialization} (${doc.available_days})`;
+                        if (preselectedDoctor && parseInt(preselectedDoctor) === doc.id) {
+                            option.selected = true;
+                        }
+                        selectBox.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch doctors:", error);
+                app.showToast('Could not load doctors database.', 'error');
+            }
+
+            // Handle submission
+            document.getElementById('booking-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const doctorId = document.getElementById('doctor-select').value;
+                const appointmentDate = document.getElementById('appointment-date').value;
+                const appointmentTime = document.getElementById('appointment-time').value;
+
+                if (!doctorId || !appointmentDate || !appointmentTime) {
+                    app.showToast('Please fill all fields', 'error');
+                    return;
+                }
+
+                try {
+                    const data = await app.request('/appointments', 'POST', {
+                        doctor_id: doctorId,
+                        appointment_date: appointmentDate,
+                        appointment_time: appointmentTime
+                    });
+
+                    app.showToast(data.message, 'success');
+                    
+                    // Fetch Doctor Name to send email
+                    const docName = document.getElementById('doctor-select').options[document.getElementById('doctor-select').selectedIndex].text.split(' - ')[0];
+
+                    // Send email notification 
+                    await app.sendConfirmationEmail({
+                        doctor_name: docName,
+                        date: appointmentDate,
+                        time: appointmentTime
+                    });
+
+                    setTimeout(() => {
+                        window.location.href = 'appointments.html';
+                    }, 2000);
+
+                } catch (error) {
+                    console.error("Booking error:", error);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

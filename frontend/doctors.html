@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Appointment System - Doctors</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+</head>
+<body>
+    <nav>
+        <a href="index.html" class="brand"><i class="fas fa-heartbeat"></i> ClinicCare</a>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html">Home</a>
+            <a href="doctors.html" class="active">Doctors</a>
+            <a href="location.html">Location</a>
+        </div>
+        <div id="auth-nav"></div>
+    </nav>
+
+    <div class="container">
+        <h1 style="margin-bottom: 2rem; color: var(--primary-color);">Our Medical Specialists</h1>
+        
+        <div id="loading" class="loader"></div>
+        
+        <div class="grid" id="doctors-grid">
+            <!-- Doctors will be injected here -->
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i class="fas fa-check-circle icon"></i>
+        <span class="message"></span>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const grid = document.getElementById('doctors-grid');
+            const loader = document.getElementById('loading');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/doctors');
+                const data = await response.json();
+                
+                loader.classList.add('hidden');
+                
+                if (data.doctors && data.doctors.length > 0) {
+                    data.doctors.forEach(doc => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.style.position = 'relative';
+                        card.innerHTML = `
+                            <div style="background-color: var(--border-color); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                                <i class="fas fa-user-md" style="font-size: 2rem; color: var(--primary-color);"></i>
+                            </div>
+                            <h3 style="margin-bottom: 0.5rem; color: var(--primary-color);">${doc.name}</h3>
+                            <p style="font-weight: 500; margin-bottom: 1rem;">${doc.specialization}</p>
+                            <div style="margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-light);">
+                                <i class="fas fa-calendar-alt"></i> ${doc.available_days}
+                            </div>
+                            <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-light);">
+                                <i class="fas fa-clock"></i> ${doc.available_time}
+                            </div>
+                            <a href="book-appointment.html?doctorId=${doc.id}" class="btn" style="width: 100%; text-align: center;">Book Appointment</a>
+                        `;
+                        grid.appendChild(card);
+                    });
+                } else {
+                    grid.innerHTML = '<p>No doctors available at the moment.</p>';
+                }
+            } catch (error) {
+                loader.classList.add('hidden');
+                console.error("Failed to load doctors", error);
+                app.showToast('Failed to load doctors database.', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
